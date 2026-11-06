@@ -65,6 +65,7 @@ async function EditTransferContent({
         name: `${line.name} (inactive)`,
         kind: "product",
         unit: line.unit,
+        madeToOrder: false,
         barcodes: [],
       })
     }

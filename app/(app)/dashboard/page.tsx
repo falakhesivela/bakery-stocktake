@@ -30,9 +30,15 @@ import {
 import { TransferStatusBadge } from "@/components/transfer-status-badge"
 import { buttonVariants } from "@/components/ui/button"
 import { requireUser } from "@/lib/auth"
-import { relativeDay, todayIn } from "@/lib/dates"
-import { formatQty } from "@/lib/format"
-import { canManageLocation, workLocations, type CurrentUser } from "@/lib/permissions"
+import { addDays, relativeDay, todayIn } from "@/lib/dates"
+import { formatMoney, formatQty } from "@/lib/format"
+import {
+  canManageLocation,
+  canWorkLocation,
+  managedLocations,
+  workLocations,
+  type CurrentUser,
+} from "@/lib/permissions"
 import { createClient } from "@/lib/supabase/server"
 import { nextAction, OPEN_STATUSES, transferPermissions } from "@/lib/transfers"
 
@@ -146,6 +152,12 @@ async function DashboardContent() {
         </Suspense>
         <Suspense fallback={<Skeleton className="h-40" />}>
           <StoreDayCard user={user} />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-40" />}>
+          <OrdersCard user={user} />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-40" />}>
+          <LastWeekCard user={user} />
         </Suspense>
       </div>
 
@@ -360,6 +372,139 @@ async function TransfersCard({ user }: { user: CurrentUser }) {
           )}
         </CardContent>
       )}
+    </Card>
+  )
+}
+
+async function OrdersCard({ user }: { user: CurrentUser }) {
+  const work = workLocations(user)
+  if (work.length === 0) return null
+  const today = todayIn(work[0].timezone)
+  const tomorrow = addDays(today, 1)
+
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("customer_orders")
+    .select(
+      "id, code, status, pickup_date, pickup_time, pickup_location_id, fulfil_location_id, customers(name), pickup:locations!customer_orders_pickup_location_id_fkey(code)",
+    )
+    .in("status", ["confirmed", "ready"])
+    .lte("pickup_date", tomorrow)
+    .order("pickup_date")
+    .order("pickup_time", { nullsFirst: false })
+    .limit(200)
+
+  const rows = (data ?? [])
+    .map((o) => {
+      const atMyStore = canWorkLocation(user, o.pickup_location_id) && o.pickup_date <= today
+      const toMake =
+        o.status === "confirmed" &&
+        o.fulfil_location_id !== o.pickup_location_id &&
+        canWorkLocation(user, o.fulfil_location_id)
+      return { o, task: atMyStore ? "Hand over" : toMake ? "Make" : null }
+    })
+    .filter((r) => r.task)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Customer orders</CardTitle>
+        <CardDescription>
+          {rows.length === 0
+            ? "Nothing to hand over today or to make by tomorrow."
+            : `${rows.filter((r) => r.task === "Hand over").length} to hand over today · ${rows.filter((r) => r.task === "Make").length} to make by tomorrow`}
+        </CardDescription>
+      </CardHeader>
+      {rows.length > 0 && (
+        <CardContent>
+          <Table>
+            <TableBody>
+              {rows.slice(0, 6).map(({ o, task }) => (
+                <TableRow key={o.id}>
+                  <TableCell className="whitespace-normal">
+                    <Link href={`/orders/${o.code}`} className="font-medium hover:underline">
+                      {o.customers?.name}
+                    </Link>
+                    <div className="text-xs text-muted-foreground">
+                      {o.code} · {o.pickup?.code} · {relativeDay(o.pickup_date, today)}
+                      {o.pickup_time && ` ${o.pickup_time.slice(0, 5)}`}
+                      {o.pickup_date < today && " · overdue"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link href={`/orders/${o.code}`} className={buttonVariants({ size: "sm", variant: "outline" })}>
+                      {task}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {rows.length > 6 && (
+            <Link href="/orders" className="mt-2 inline-block text-sm hover:underline">
+              See all {rows.length}
+            </Link>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+/** Sales and waste over the last 7 days at the locations the user manages. */
+async function LastWeekCard({ user }: { user: CurrentUser }) {
+  const managed = managedLocations(user)
+  if (managed.length === 0) return null
+  const today = todayIn(managed[0].timezone)
+  const range = { p_from: addDays(today, -6), p_to: today }
+  const ids = new Set(managed.map((l) => l.id))
+  const codes = new Set(managed.map((l) => l.code))
+
+  const supabase = await createClient()
+  const [{ data: moves }, { data: waste }, { data: orders }, { data: counts }] = await Promise.all([
+    supabase.rpc("report_movements", range),
+    supabase.rpc("report_waste", range),
+    supabase.rpc("report_collected_orders", range),
+    supabase.rpc("report_count_differences", range),
+  ])
+  const total = <T,>(rows: T[] | null, keep: (r: T) => boolean, value: (r: T) => number) =>
+    (rows ?? []).filter(keep).reduce((sum, r) => sum + value(r), 0)
+
+  const sales = total(moves, (r) => ids.has(r.location_id), (r) => Number(r.sold) * Number(r.unit_price ?? 0))
+  const collected = total(orders, (r) => ids.has(r.location_id), (r) => Number(r.value))
+  const wasted = total(waste, (r) => ids.has(r.location_id), (r) => Number(r.cost_value))
+  const counted = total(counts, (r) => codes.has(r.location_code), (r) => Number(r.value))
+  const wastePct = sales > 0 ? Math.round((wasted / sales) * 1000) / 10 : null
+
+  const stats = [
+    { label: "Shelf sales", value: formatMoney(sales) },
+    { label: "Orders collected", value: formatMoney(collected) },
+    { label: "Waste at cost", value: formatMoney(wasted), hint: wastePct === null ? undefined : `${wastePct}% of sales` },
+    { label: "Count differences", value: formatMoney(counted), bad: counted < 0 },
+  ]
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Last 7 days</CardTitle>
+        <CardDescription>
+          {managed.length === 1 ? managed[0].name : `${managed.length} locations you manage`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <div className="text-sm text-muted-foreground">{s.label}</div>
+              <div className={`text-xl font-semibold tabular-nums ${s.bad ? "text-destructive" : ""}`}>{s.value}</div>
+              {s.hint && <div className="text-xs text-muted-foreground">{s.hint}</div>}
+            </div>
+          ))}
+        </div>
+        <Link href="/reports?report=overview" className="text-sm hover:underline">
+          Open reports
+        </Link>
+      </CardContent>
     </Card>
   )
 }

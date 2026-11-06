@@ -79,6 +79,11 @@ insert into public.items (id, sku, name, kind, category_id, unit, shelf_life_day
   ('40000000-0000-0000-0000-000000000011', 'COCOA', 'Cocoa powder', 'ingredient', '30000000-0000-0000-0000-000000000004', 'kg', null, false, 160.00, null),
   ('40000000-0000-0000-0000-000000000012', 'BOX-CAKE-L', 'Cake box (large)', 'packaging', '30000000-0000-0000-0000-000000000005', 'each', null, false, 7.50, null);
 
+-- Made to order: priced per order; the cake's details live on the order.
+insert into public.items (id, sku, name, kind, category_id, unit, shelf_life_days, track_batches, cost, price, made_to_order, notes) values
+  ('40000000-0000-0000-0000-000000000013', 'CAKE-CUSTOM', 'Custom cake', 'product', '30000000-0000-0000-0000-000000000001', 'each', 3, true, null, null, true,
+   'Size, flavour and wording are taken on the customer order');
+
 insert into public.item_barcodes (barcode, item_id) values
   ('2000000000015', '40000000-0000-0000-0000-000000000001'),
   ('2000000000022', '40000000-0000-0000-0000-000000000002'),
@@ -130,6 +135,16 @@ from (values
   -- white loaves (per 10)
   (6, '07', 5.00), (6, '08', 0.10), (6, '09', 0.15)
 ) as v (r, i, q);
+
+-- Custom cake: a typical 30 cm celebration cake.
+insert into public.recipes (id, product_item_id, yield_qty, notes) values
+  ('60000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000013', 1, 'Base for a 30 cm cake; decoration varies');
+insert into public.recipe_lines (recipe_id, ingredient_item_id, qty) values
+  ('60000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000007', 0.50),
+  ('60000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000008', 0.45),
+  ('60000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000009', 0.35),
+  ('60000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000010', 6),
+  ('60000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000012', 1);
 
 -- ---------------------------------------------------------------------------
 -- Opening stock (posted directly as the seed runs with full rights)
@@ -355,3 +370,125 @@ begin
   perform set_config('request.jwt.claims', '', false);
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Customer orders
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_wh constant uuid := '10000000-0000-0000-0000-000000000001';
+  v_westham constant uuid := '10000000-0000-0000-0000-000000000002';
+  v_riverside constant uuid := '10000000-0000-0000-0000-000000000003';
+  v_today date := (now() at time zone 'Africa/Johannesburg')::date;
+  v_id uuid;
+begin
+  -- A birthday cake for tomorrow, taken at Westham: on the bakery's list.
+  perform pg_temp.act_as('20000000-0000-0000-0000-000000000004');
+  perform public.save_customer_order(
+    jsonb_build_object(
+      'customer_name', 'Priya Naidoo', 'customer_phone', '082 555 1234',
+      'taken_at_location_id', v_westham, 'pickup_location_id', v_westham,
+      'pickup_date', v_today + 1, 'pickup_time', '10:00', 'deposit', 300, 'confirm', true,
+      'notes', 'Customer will bring candles'
+    ),
+    jsonb_build_array(jsonb_build_object(
+      'item_id', '40000000-0000-0000-0000-000000000013', 'qty', 1, 'unit_price', 650,
+      'details', jsonb_build_object(
+        'size', '30 cm round', 'flavour', 'Chocolate', 'filling', 'Salted caramel',
+        'inscription', 'Happy 40th Priya!', 'notes', 'Gold sprinkles, no nuts'
+      )
+    ))
+  );
+
+  -- Cupcakes for a Riverside customer today: already made, on the delivery.
+  perform pg_temp.act_as('20000000-0000-0000-0000-000000000005');
+  v_id := public.save_customer_order(
+    jsonb_build_object(
+      'customer_name', 'Tom Jacobs', 'customer_phone', '083 555 9876',
+      'taken_at_location_id', v_riverside, 'pickup_location_id', v_riverside,
+      'pickup_date', v_today, 'pickup_time', '15:00', 'deposit', 100, 'confirm', true
+    ),
+    jsonb_build_array(jsonb_build_object('item_id', '40000000-0000-0000-0000-000000000004', 'qty', 24))
+  );
+  perform pg_temp.act_as('20000000-0000-0000-0000-000000000006');
+  perform public.mark_order_ready(v_id);
+
+  -- A chocolate cake set aside from Westham's own shelf, waiting for the customer.
+  perform pg_temp.act_as('20000000-0000-0000-0000-000000000004');
+  v_id := public.save_customer_order(
+    jsonb_build_object(
+      'customer_name', 'Lerato Mokoena', 'customer_phone', '084 555 2222',
+      'taken_at_location_id', v_westham, 'pickup_location_id', v_westham,
+      'fulfil_location_id', v_westham,
+      'pickup_date', v_today, 'pickup_time', '16:30', 'confirm', true
+    ),
+    jsonb_build_array(jsonb_build_object('item_id', '40000000-0000-0000-0000-000000000001', 'qty', 1))
+  );
+  perform public.mark_order_ready(v_id);
+
+  -- One already collected and paid.
+  v_id := public.save_customer_order(
+    jsonb_build_object(
+      'customer_name', 'Anna Botha', 'customer_phone', '082 555 7777',
+      'taken_at_location_id', v_westham, 'pickup_location_id', v_westham,
+      'fulfil_location_id', v_westham, 'pickup_date', v_today, 'confirm', true
+    ),
+    jsonb_build_array(jsonb_build_object('item_id', '40000000-0000-0000-0000-000000000006', 'qty', 1))
+  );
+  perform public.collect_customer_order(v_id, 22);
+
+  perform set_config('request.jwt.claims', '', false);
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Four weeks of history at the stores (before go-live), so reports and the
+-- suggested standing orders have something to work with: each day the
+-- standing order arrived, most of it sold and the rest was thrown away at
+-- closing. Each day nets to zero, so today's stock is unchanged.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_today date := (now() at time zone 'Africa/Johannesburg')::date;
+  v_day date;
+  v_row record;
+  v_waste numeric;
+  v_entry uuid;
+  v_at timestamptz;
+begin
+  for v_day in select generate_series(v_today - 31, v_today - 4, interval '1 day')::date loop
+    v_at := (v_day + time '08:00') at time zone 'Africa/Johannesburg';
+    for v_row in
+      select so.to_location_id as location_id, so.item_id, so.qty, i.cost
+      from public.standing_orders so
+      join public.items i on i.id = so.item_id
+      where so.weekday = extract(isodow from v_day)
+    loop
+      -- Between 0 and 30% left over, varying by item and day (repeatable).
+      v_waste := floor(v_row.qty * (abs(hashtext(v_row.item_id::text || v_day::text)) % 31) / 100.0);
+
+      insert into public.stock_movements (location_id, item_id, qty, type, note, business_date, created_at, created_by)
+      values (v_row.location_id, v_row.item_id, v_row.qty, 'transfer_in', 'History before go-live', v_day, v_at,
+              '20000000-0000-0000-0000-000000000001');
+      if v_row.qty - v_waste > 0 then
+        insert into public.stock_movements (location_id, item_id, qty, type, note, business_date, created_at, created_by)
+        values (v_row.location_id, v_row.item_id, -(v_row.qty - v_waste), 'sale', 'History before go-live', v_day,
+                v_at + interval '10 hours', '20000000-0000-0000-0000-000000000001');
+      end if;
+      if v_waste > 0 then
+        insert into public.waste_entries (location_id, item_id, qty, reason, business_date, unit_cost, created_by, created_at)
+        values (v_row.location_id, v_row.item_id, v_waste, 'unsold', v_day, v_row.cost,
+                '20000000-0000-0000-0000-000000000001', v_at + interval '11 hours')
+        returning id into v_entry;
+        insert into public.stock_movements (location_id, item_id, qty, type, reference_type, reference_id, note,
+                                            business_date, created_at, created_by)
+        values (v_row.location_id, v_row.item_id, -v_waste, 'waste', 'waste_entry', v_entry, 'History before go-live',
+                v_day, v_at + interval '11 hours', '20000000-0000-0000-0000-000000000001');
+      end if;
+    end loop;
+  end loop;
+end;
+$$;
+
+-- Start the audit log clean: the seed itself isn't anyone's change.
+truncate public.audit_log;

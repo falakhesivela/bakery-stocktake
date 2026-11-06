@@ -106,7 +106,7 @@ async function StandingOrdersContent({
         label: `${codeOf(r.fromId)} → ${codeOf(r.toId)}`,
         itemCount: r.items.size,
       }))}
-      items={items}
+      items={items.filter((i) => !i.madeToOrder)}
       initial={(rows ?? []).map((r) => ({ itemId: r.item_id, weekday: r.weekday, qty: Number(r.qty) }))}
     />
   )

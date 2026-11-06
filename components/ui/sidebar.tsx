@@ -6,7 +6,7 @@ import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-import { useHydrated, useIsMobile } from "@/hooks/use-mobile"
+import { isMobileScreen, useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
@@ -38,7 +38,6 @@ type SidebarContextProps = {
   setOpen: (open: boolean) => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
-  isMobile: boolean
   toggleSidebar: () => void
 }
 
@@ -66,7 +65,10 @@ function SidebarProvider({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const isMobile = useIsMobile()
+  // Phone vs desktop is deliberately NOT kept in this context: a context change
+  // while the page is still streaming in makes React re-render that content in
+  // the browser instead of hydrating it. The components that need it check the
+  // screen themselves (useIsMobile / isMobileScreen).
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
@@ -90,8 +92,8 @@ function SidebarProvider({
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
+    return isMobileScreen() ? setOpenMobile((open) => !open) : setOpen((open) => !open)
+  }, [setOpen, setOpenMobile])
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -118,12 +120,11 @@ function SidebarProvider({
       state,
       open,
       setOpen,
-      isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, openMobile, setOpenMobile, toggleSidebar]
   )
 
   return (
@@ -162,11 +163,9 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-  // The sidebar can hydrate after its provider (it sits inside Suspense), when
-  // the provider already knows it's a phone. Render the server's desktop
-  // markup until hydrated (it's hidden on phones by CSS), then the sheet.
-  const hydrated = useHydrated()
+  const { state, openMobile, setOpenMobile } = useSidebar()
+  // Switches to the slide-out sheet after the page has loaded on a phone.
+  const isMobile = useIsMobile()
 
   if (collapsible === "none") {
     return (
@@ -183,7 +182,7 @@ function Sidebar({
     )
   }
 
-  if (isMobile && hydrated) {
+  if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -513,7 +512,8 @@ function SidebarMenuButton({
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
-  const { isMobile, state } = useSidebar()
+  const { state } = useSidebar()
+  const isMobile = useIsMobile()
   const comp = useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(

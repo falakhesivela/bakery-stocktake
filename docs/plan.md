@@ -8,8 +8,8 @@
 | 2. Production (finished goods) + transfers | Done (1 Nov 2026) |
 | 3. Store daily ops | Done (1 Nov 2026) |
 | 4. Recipes & ingredients | Done (1 Nov 2026) |
-| 5. Customer orders | Next |
-| 6. Reports & alerts | Not started |
+| 5. Customer orders | Done (1 Nov 2026) |
+| 6. Reports & alerts | Done (4 Nov 2026) |
 
 Decisions made while building Phase 2 (differences from the plan below):
 - **No separate "Closed" status.** A transfer ends at *Received*. If anything
@@ -58,12 +58,55 @@ Decisions made while building Phase 4:
   first. Shortfalls are allowed (negative stock, flagged) so a bake is never
   blocked by a wrong ingredient count.
 - **Actual vs recipe usage** will come from ingredient stock takes: the count
-  difference is the over/under use. (Report in Phase 6.)
+  difference is the over/under use (Reports → Ingredient use).
 - **Any staff can receive deliveries; only managers can update cost prices or
   cancel a delivery.** Cancelling doesn't undo a cost-price update.
 - **Suppliers are kept by any manager** (not only admins). Purchase orders to
   suppliers stay on the "later" list; "Running low" shows what to order.
 - Browser walkthroughs now live in `tests/e2e` (`pnpm test:e2e`).
+
+Decisions made while building Phase 5:
+- **Statuses: new → confirmed → ready → collected (or cancelled).** No separate
+  "in production" or "sent" status: where the order physically is comes from
+  its delivery (on the way / at the store), shown in words on the order.
+- **Custom cakes are a "made to order" catalogue item** (Custom cake), so they
+  move through bakes, deliveries and stock like everything else; the cake's
+  details and photo live on the order line.
+- **Only confirmed orders go on the bake list.** "New" orders are enquiries.
+- **A bakery-made order can only be handed over once it's ready**; shelf orders
+  can be handed over straight away.
+- **Cancelling a ready order needs a manager**; if its delivery hasn't left, the
+  order comes off it again. Anything already made stays in stock.
+- **Customers are matched on the last 9 digits of their phone number**, so
+  "082 555 1234" and "+27 82 555 1234" are the same person.
+- **Staff at any store or bakery can look up customers** (orders can be taken
+  anywhere). Customer details are personal information: keep access in mind
+  for POPIA.
+- Payments are amounts only (deposit, paid on collection); no payment methods
+  or till integration yet. SMS/WhatsApp "ready" messages stay on the later list.
+
+Decisions made while building Phase 6:
+- **Reports are for managers and admins**, over the locations they manage,
+  and are worked out live from the stock ledger (no separate reporting
+  tables). Sales are valued at today's catalogue price; waste at the cost when
+  it was wasted; counts and delivery differences at cost.
+- **Received, sold & wasted** counts customer orders as sold. Ingredient "actual
+  use" = recipe use + waste − count difference.
+- **Suggested standing orders** = average sold (shelf sales and customer
+  orders) per weekday over the last 4 weeks, rounded up. Waste is already left
+  out because only what sold counts. Suggestions only fill the screen;
+  nothing changes until the manager saves.
+- **In-app notifications only** (bell + Notifications page), checked every
+  minute and on each page change. Event notifications go to the people who
+  have to act (e.g. new requests to the sending location's managers) and never
+  to the person who caused them. Daily alerts run hourly but go out once per
+  person per day, from 06:00 local time. Notifications are kept 60 days. Email
+  and SMS stay on the later list.
+- **Audit log covers settings and catalogue changes** (products, prices,
+  barcodes, categories, recipes, suppliers, locations, users, roles, reorder
+  levels, standing orders); stock changes are already in the ledger. Saving a
+  standing order or recipe now writes only the lines that changed, so the log
+  shows real changes. Only admins can read it.
 
 ## Context
 A bakery with several **stores** and one or more **warehouses** needs one app that tracks stock everywhere: baking at the warehouse, moving goods (warehouse → store, warehouse → warehouse, store → warehouse returns), store sales, waste, stock takes, and customer orders (custom cakes / pre-orders).

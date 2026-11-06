@@ -42,13 +42,14 @@ export function formatDate(value: string | null | undefined) {
   }).format(new Date(Date.UTC(y, m - 1, d)))
 }
 
-export function formatDateTime(value: string | null | undefined) {
+export function formatDateTime(value: string | null | undefined, timeZone?: string) {
   if (!value) return "—"
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone,
   }).format(new Date(value))
 }
 
@@ -70,4 +71,15 @@ export function expiryStatus(daysToExpiry: number | null | undefined): ExpirySta
   if (daysToExpiry === 0) return "today"
   if (daysToExpiry <= 1) return "soon"
   return "ok"
+}
+
+/** "just now", "5 min ago", "3 h ago", "yesterday", or a short date. */
+export function timeAgo(value: string, now: number = Date.now(), timeZone?: string) {
+  const minutes = Math.floor((now - new Date(value).getTime()) / 60_000)
+  if (minutes < 1) return "just now"
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} h ago`
+  if (hours < 48) return "yesterday"
+  return formatDateTime(value, timeZone)
 }

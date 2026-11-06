@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useTransition } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { ArrowRight, CalendarPlus, CopyCheck } from "lucide-react"
+import { ArrowRight, CalendarPlus, CopyCheck, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,12 @@ import {
 } from "@/components/ui/table"
 import { WEEKDAYS } from "@/lib/dates"
 import { formatQty } from "@/lib/format"
-import { generateStandingTransfers, saveStandingOrders } from "../actions"
+import {
+  generateStandingTransfers,
+  saveStandingOrders,
+  suggestStandingOrder,
+  type StandingSuggestion,
+} from "../actions"
 
 type Item = {
   id: string
@@ -36,6 +41,8 @@ type Item = {
 type Loc = { id: string; code: string; name: string; type: "warehouse" | "store" }
 
 const cellKey = (itemId: string, weekday: number) => `${itemId}|${weekday}`
+const SUGGEST_WEEKS = 4
+const round1 = (n: number) => formatQty(Math.round(n * 10) / 10)
 
 export function StandingOrdersEditor({
   fromId,
@@ -64,6 +71,9 @@ export function StandingOrdersEditor({
   )
   const [showAll, setShowAll] = useState(false)
   const [dirty, setDirty] = useState(false)
+  // Average sales behind each suggested quantity, shown under the box.
+  const [hints, setHints] = useState<Record<string, StandingSuggestion>>({})
+  const toLocation = locations.find((l) => l.id === toId)
 
   const usedItems = new Set(initial.map((r) => r.itemId))
   const shown = items.filter((i) => showAll || i.kind === "product" || usedItems.has(i.id))
@@ -103,6 +113,33 @@ export function StandingOrdersEditor({
       if (!result.ok) return void toast.error(result.error)
       setDirty(false)
       toast.success(`Saved ${result.data.count} quantit${result.data.count === 1 ? "y" : "ies"}.`)
+    })
+  }
+
+  function suggest() {
+    startTransition(async () => {
+      const result = await suggestStandingOrder({
+        fromLocationId: fromId,
+        toLocationId: toId,
+        weeks: SUGGEST_WEEKS,
+      })
+      if (!result.ok) return void toast.error(result.error)
+      const rows = result.data.rows
+      if (rows.length === 0) {
+        return void toast.info(`${toLocation?.code ?? "This store"} has no sales in the last ${SUGGEST_WEEKS} weeks to go on.`)
+      }
+      const itemIds = new Set(rows.map((r) => r.itemId))
+      setCells((current) => {
+        const next = { ...current }
+        for (const id of itemIds) for (const day of WEEKDAYS) next[cellKey(id, day.value)] = ""
+        for (const r of rows) next[cellKey(r.itemId, r.weekday)] = String(r.suggested)
+        return next
+      })
+      setHints(Object.fromEntries(rows.map((r) => [cellKey(r.itemId, r.weekday), r])))
+      setDirty(true)
+      toast.success(
+        `Filled in ${itemIds.size} item${itemIds.size === 1 ? "" : "s"} from average sales. Check the numbers, then save.`,
+      )
     })
   }
 
@@ -184,12 +221,26 @@ export function StandingOrdersEditor({
         </p>
       ) : (
         <>
-          <div className="flex items-center gap-2">
-            <Switch id="standing-all" checked={showAll} onCheckedChange={setShowAll} />
-            <label htmlFor="standing-all" className="text-sm">
-              Show ingredients and packaging too
-            </label>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-2">
+              <Switch id="standing-all" checked={showAll} onCheckedChange={setShowAll} />
+              <label htmlFor="standing-all" className="text-sm">
+                Show ingredients and packaging too
+              </label>
+            </div>
+            {toLocation?.type === "store" && (
+              <Button variant="outline" size="sm" className="sm:ml-auto" onClick={suggest} disabled={pending}>
+                <Sparkles />
+                Suggest from last {SUGGEST_WEEKS} weeks&apos; sales
+              </Button>
+            )}
           </div>
+          {Object.keys(hints).length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Suggested quantities are what {toLocation?.code} sold on that weekday, on average, rounded up. The
+              small number under each box is the average sold that day (hover over it for the average wasted).
+            </p>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -209,20 +260,31 @@ export function StandingOrdersEditor({
                     <div className="font-medium">{item.name}</div>
                     <div className="font-mono text-xs text-muted-foreground">{item.sku}</div>
                   </TableCell>
-                  {WEEKDAYS.map((d) => (
-                    <TableCell key={d.value} className="px-1">
-                      <Input
-                        aria-label={`${item.name} on ${d.long}`}
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
-                        className="w-16 text-center"
-                        value={cells[cellKey(item.id, d.value)] ?? ""}
-                        onChange={(e) => setCell(item.id, d.value, e.target.value)}
-                      />
-                    </TableCell>
-                  ))}
+                  {WEEKDAYS.map((d) => {
+                    const hint = hints[cellKey(item.id, d.value)]
+                    return (
+                      <TableCell key={d.value} className="px-1 align-top">
+                        <Input
+                          aria-label={`${item.name} on ${d.long}`}
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="any"
+                          className="w-16 text-center"
+                          value={cells[cellKey(item.id, d.value)] ?? ""}
+                          onChange={(e) => setCell(item.id, d.value, e.target.value)}
+                        />
+                        {hint && (
+                          <div
+                            className="mt-0.5 text-center text-[11px] text-muted-foreground tabular-nums"
+                            title={`Average sold ${round1(hint.avgSold)}, wasted ${round1(hint.avgWasted)}`}
+                          >
+                            avg {round1(hint.avgSold)}
+                          </div>
+                        )}
+                      </TableCell>
+                    )
+                  })}
                   <TableCell>
                     <Button
                       variant="ghost"

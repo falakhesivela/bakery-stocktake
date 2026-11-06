@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Suspense } from "react"
 import { History, PackagePlus } from "lucide-react"
+import { CsvButton } from "@/components/csv-button"
 import { ExpiryBadge } from "@/components/expiry-badge"
 import { PageHeader } from "@/components/page-header"
 import { TableSkeleton } from "@/components/table-skeleton"
@@ -99,11 +100,14 @@ async function StockContent({
   }
   const search = codeMatch ? "" : cleanSearch(q)
 
-  const filters = (
-    <StockFilters
-      locations={user.locations}
-      current={{ location, kind, q, view }}
-    />
+  const locationCode = user.locations.find((l) => l.id === location)?.code ?? "all"
+  const toolbar = (csv: Record<string, string | number | null>[]) => (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="min-w-0 flex-1">
+        <StockFilters locations={user.locations} current={{ location, kind, q, view }} />
+      </div>
+      <CsvButton rows={csv} filename={`stock-${view === "item" ? "by-item" : "by-batch"}-${locationCode}.csv`} />
+    </div>
   )
 
   if (view === "item") {
@@ -122,10 +126,21 @@ async function StockContent({
 
     const { data, error } = await query
     const rows = data ?? []
+    const csv = rows.map((r) => ({
+      Location: r.location_code,
+      SKU: r.sku,
+      Item: r.item_name,
+      Kind: r.kind,
+      Category: r.category_name,
+      Unit: r.unit,
+      Qty: Number(r.qty),
+      Batches: r.batch_count,
+      "Earliest best-before": r.earliest_best_before,
+    }))
 
     return (
       <div className="flex flex-col gap-4">
-        {filters}
+        {toolbar(csv)}
         {error ? (
           <ErrorNote message={error.message} />
         ) : rows.length === 0 ? (
@@ -190,10 +205,22 @@ async function StockContent({
 
   const { data, error } = await query
   const rows = data ?? []
+  const csv = rows.map((r) => ({
+    Location: r.location_code,
+    SKU: r.sku,
+    Item: r.item_name,
+    Kind: r.kind,
+    Category: r.category_name,
+    Unit: r.unit,
+    Batch: r.batch_code,
+    "Made on": r.produced_on,
+    "Best before": r.best_before,
+    Qty: Number(r.qty),
+  }))
 
   return (
     <div className="flex flex-col gap-4">
-      {filters}
+      {toolbar(csv)}
       {error ? (
         <ErrorNote message={error.message} />
       ) : rows.length === 0 ? (

@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   Contact,
   Gauge,
+  History,
   KeyRound,
   ListChecks,
   PackageOpen,
@@ -28,7 +29,6 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { signOut } from "@/app/actions/auth"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,7 +73,15 @@ const hasWork = (u: CurrentUser) => workLocations(u).length > 0
 // Grouped so the menu stays easy to scan on a phone.
 const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
   {
-    items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      {
+        title: "Reports",
+        href: "/reports",
+        icon: ChartColumn,
+        show: (u) => managedLocations(u).length > 0,
+      },
+    ],
   },
   {
     label: "Daily work",
@@ -92,6 +100,7 @@ const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
       },
       { title: "Sales", href: "/sales", icon: Receipt, show: hasWork },
       { title: "Waste", href: "/waste", icon: Trash2, show: hasWork },
+      { title: "Customer orders", href: "/orders", icon: ShoppingBag, show: hasWork },
       { title: "Deliveries", href: "/deliveries", icon: PackageOpen, show: hasWork },
       { title: "End of day", href: "/end-of-day", icon: ListChecks, show: hasWork },
     ],
@@ -131,15 +140,10 @@ const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
   },
 ]
 
-// Shown greyed out so staff can see what is coming next.
-const COMING_SOON: { title: string; icon: LucideIcon }[] = [
-  { title: "Customer orders", icon: ShoppingBag },
-  { title: "Reports", icon: ChartColumn },
-]
-
 const ADMIN_NAV: NavItem[] = [
   { title: "Locations", href: "/settings/locations", icon: Store },
   { title: "Users", href: "/settings/users", icon: Users },
+  { title: "Audit log", href: "/settings/audit", icon: History },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -209,29 +213,6 @@ export function AppSidebar({ user }: { user: CurrentUser }) {
             </SidebarGroup>
           )
         })}
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Coming next</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {COMING_SOON.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    disabled
-                    tooltip={`${item.title} (coming soon)`}
-                    className="opacity-60"
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                    <Badge variant="outline" className="ml-auto">
-                      Soon
-                    </Badge>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
         {user.isAdmin && (
           <SidebarGroup>

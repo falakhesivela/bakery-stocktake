@@ -23,7 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "batches": {
+            "audit_log": {
+                  Row: {
+                    "action": string,"actor": string | null,"changes": Json | null,"created_at": string,"id": number,"row_key": string | null,"table_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor"?: string | null,"changes"?: Json | null,"created_at"?: string,"id"?: never,"row_key"?: string | null,"table_name": string
+                  }
+                  Update: {
+                    "action"?: string,"actor"?: string | null,"changes"?: Json | null,"created_at"?: string,"id"?: never,"row_key"?: string | null,"table_name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "audit_log_actor_fkey"
+      columns: ["actor"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"batches": {
                   Row: {
                     "best_before": string | null,"code": string,"created_at": string,"created_by": string | null,"id": string,"item_id": string,"location_id": string | null,"produced_on": string,"source": Database["public"]['Enums']["batch_source"]
                   }
@@ -65,6 +85,126 @@ isOneToOne: false
                   }
                   Update: {
                     "created_at"?: string,"id"?: string,"name"?: string,"sort_order"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"customer_order_lines": {
+                  Row: {
+                    "details": Json | null,"id": string,"item_id": string,"order_id": string,"photo_path": string | null,"position": number,"qty": number,"unit_price": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "details"?: Json | null,"id"?: string,"item_id": string,"order_id": string,"photo_path"?: string | null,"position"?: number,"qty": number,"unit_price"?: number
+                  }
+                  Update: {
+                    "details"?: Json | null,"id"?: string,"item_id"?: string,"order_id"?: string,"photo_path"?: string | null,"position"?: number,"qty"?: number,"unit_price"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_order_lines_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_order_lines_order_id_fkey"
+      columns: ["order_id"]
+isOneToOne: false
+      referencedRelation: "customer_orders"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customer_orders": {
+                  Row: {
+                    "cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"code": string,"collected_at": string | null,"collected_by": string | null,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"created_by": string | null,"customer_id": string,"deposit": number,"fulfil_location_id": string,"id": string,"notes": string | null,"paid_on_collection": number | null,"pickup_date": string,"pickup_location_id": string,"pickup_time": string | null,"ready_at": string | null,"ready_by": string | null,"status": Database["public"]['Enums']["order_status"],"taken_at_location_id": string,"transfer_id": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"code"?: string,"collected_at"?: string | null,"collected_by"?: string | null,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id": string,"deposit"?: number,"fulfil_location_id": string,"id"?: string,"notes"?: string | null,"paid_on_collection"?: number | null,"pickup_date": string,"pickup_location_id": string,"pickup_time"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"taken_at_location_id": string,"transfer_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"code"?: string,"collected_at"?: string | null,"collected_by"?: string | null,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string,"deposit"?: number,"fulfil_location_id"?: string,"id"?: string,"notes"?: string | null,"paid_on_collection"?: number | null,"pickup_date"?: string,"pickup_location_id"?: string,"pickup_time"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"status"?: Database["public"]['Enums']["order_status"],"taken_at_location_id"?: string,"transfer_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_orders_cancelled_by_fkey"
+      columns: ["cancelled_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_collected_by_fkey"
+      columns: ["collected_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_confirmed_by_fkey"
+      columns: ["confirmed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_fulfil_location_id_fkey"
+      columns: ["fulfil_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_pickup_location_id_fkey"
+      columns: ["pickup_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_ready_by_fkey"
+      columns: ["ready_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_taken_at_location_id_fkey"
+      columns: ["taken_at_location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_transfer_id_fkey"
+      columns: ["transfer_id"]
+isOneToOne: false
+      referencedRelation: "transfer_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_orders_transfer_id_fkey"
+      columns: ["transfer_id"]
+isOneToOne: false
+      referencedRelation: "transfers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customers": {
+                  Row: {
+                    "created_at": string,"email": string | null,"id": string,"name": string,"notes": string | null,"phone": string | null,"phone_key": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"email"?: string | null,"id"?: string,"name": string,"notes"?: string | null,"phone"?: string | null,"phone_key"?: never,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string | null,"id"?: string,"name"?: string,"notes"?: string | null,"phone"?: string | null,"phone_key"?: never,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -187,14 +327,14 @@ isOneToOne: false
                   ]
                 },"items": {
                   Row: {
-                    "active": boolean,"category_id": string | null,"cost": number | null,"created_at": string,"id": string,"image_path": string | null,"kind": Database["public"]['Enums']["item_kind"],"name": string,"notes": string | null,"price": number | null,"shelf_life_days": number | null,"sku": string,"track_batches": boolean,"unit": Database["public"]['Enums']["item_unit"],"updated_at": string
+                    "active": boolean,"category_id": string | null,"cost": number | null,"created_at": string,"id": string,"image_path": string | null,"kind": Database["public"]['Enums']["item_kind"],"made_to_order": boolean,"name": string,"notes": string | null,"price": number | null,"shelf_life_days": number | null,"sku": string,"track_batches": boolean,"unit": Database["public"]['Enums']["item_unit"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"category_id"?: string | null,"cost"?: number | null,"created_at"?: string,"id"?: string,"image_path"?: string | null,"kind"?: Database["public"]['Enums']["item_kind"],"name": string,"notes"?: string | null,"price"?: number | null,"shelf_life_days"?: number | null,"sku": string,"track_batches"?: boolean,"unit"?: Database["public"]['Enums']["item_unit"],"updated_at"?: string
+                    "active"?: boolean,"category_id"?: string | null,"cost"?: number | null,"created_at"?: string,"id"?: string,"image_path"?: string | null,"kind"?: Database["public"]['Enums']["item_kind"],"made_to_order"?: boolean,"name": string,"notes"?: string | null,"price"?: number | null,"shelf_life_days"?: number | null,"sku": string,"track_batches"?: boolean,"unit"?: Database["public"]['Enums']["item_unit"],"updated_at"?: string
                   }
                   Update: {
-                    "active"?: boolean,"category_id"?: string | null,"cost"?: number | null,"created_at"?: string,"id"?: string,"image_path"?: string | null,"kind"?: Database["public"]['Enums']["item_kind"],"name"?: string,"notes"?: string | null,"price"?: number | null,"shelf_life_days"?: number | null,"sku"?: string,"track_batches"?: boolean,"unit"?: Database["public"]['Enums']["item_unit"],"updated_at"?: string
+                    "active"?: boolean,"category_id"?: string | null,"cost"?: number | null,"created_at"?: string,"id"?: string,"image_path"?: string | null,"kind"?: Database["public"]['Enums']["item_kind"],"made_to_order"?: boolean,"name"?: string,"notes"?: string | null,"price"?: number | null,"shelf_life_days"?: number | null,"sku"?: string,"track_batches"?: boolean,"unit"?: Database["public"]['Enums']["item_unit"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -218,6 +358,32 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"notifications": {
+                  Row: {
+                    "body": string | null,"created_at": string,"dedupe_key": string | null,"id": number,"kind": string,"link": string | null,"location_id": string | null,"read_at": string | null,"title": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string | null,"created_at"?: string,"dedupe_key"?: string | null,"id"?: never,"kind": string,"link"?: string | null,"location_id"?: string | null,"read_at"?: string | null,"title": string,"user_id": string
+                  }
+                  Update: {
+                    "body"?: string | null,"created_at"?: string,"dedupe_key"?: string | null,"id"?: never,"kind"?: string,"link"?: string | null,"location_id"?: string | null,"read_at"?: string | null,"title"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_location_id_fkey"
+      columns: ["location_id"]
+isOneToOne: false
+      referencedRelation: "locations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notifications_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"production_runs": {
                   Row: {
@@ -930,11 +1096,20 @@ isOneToOne: false
 "can_manage_location":
 { Args: { "p_location_id": string }; Returns: boolean
                            },
+"can_see_order":
+{ Args: { "p_order_id": string }; Returns: boolean
+                           },
+"can_see_order_photo":
+{ Args: { "p_name": string }; Returns: boolean
+                           },
 "can_see_transfer":
 { Args: { "p_transfer_id": string }; Returns: boolean
                            },
 "can_work_location":
 { Args: { "p_location_id": string }; Returns: boolean
+                           },
+"cancel_customer_order":
+{ Args: { "p_id": string,"p_reason"?: string }; Returns: undefined
                            },
 "cancel_stock_take":
 { Args: { "p_id": string,"p_reason"?: string }; Returns: undefined
@@ -942,10 +1117,19 @@ isOneToOne: false
 "cancel_transfer":
 { Args: { "p_id": string,"p_reason"?: string }; Returns: string
                            },
+"collect_customer_order":
+{ Args: { "p_id": string,"p_paid"?: number }; Returns: undefined
+                           },
+"confirm_customer_order":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "daily_summary":
 { Args: { "p_date": string,"p_location_id": string }; Returns: {
               "closing": number,"count_difference": number,"counted": boolean,"expected_closing": number,"item_id": string,"item_name": string,"kind": Database["public"]['Enums']["item_kind"],"opening": number,"other": number,"produced": number,"received": number,"sent": number,"sku": string,"sold": number,"unit": Database["public"]['Enums']["item_unit"],"unit_cost": number,"unit_price": number,"wasted": number
             }[]
+                           },
+"default_fulfil_location":
+{ Args: { "p_pickup": string }; Returns: string
                            },
 "dispatch_transfer":
 { Args: { "p_id": string,"p_picks": Json }; Returns: undefined
@@ -954,6 +1138,9 @@ isOneToOne: false
 { Args: { "p_code": string }; Returns: {
               "batch_id": string,"item_id": string
             }[]
+                           },
+"generate_daily_alerts":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "generate_standing_transfers":
 { Args: { "p_date"?: string }; Returns: number
@@ -968,6 +1155,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "is_any_manager":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"is_staff":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "location_today":
@@ -1012,6 +1202,15 @@ isOneToOne: false
 "log_waste":
 { Args: { "p_business_date"?: string,"p_lines": Json,"p_location_id": string }; Returns: number
                            },
+"mark_notifications_read":
+{ Args: { "p_ids"?: (number)[] }; Returns: number
+                           },
+"mark_order_ready":
+{ Args: { "p_id": string }; Returns: string
+                           },
+"next_customer_order_code":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "next_goods_receipt_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -1020,6 +1219,9 @@ isOneToOne: false
                            },
 "next_transfer_code":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"notify_location":
+{ Args: { "p_body"?: string,"p_dedupe"?: string,"p_kind": string,"p_link"?: string,"p_location_id": string,"p_title": string,"p_who": string }; Returns: number
                            },
 "photo_location":
 { Args: { "p_name": string }; Returns: string
@@ -1052,8 +1254,41 @@ isOneToOne: false
 "replace_transfer_lines":
 { Args: { "p_keep_requested": boolean,"p_lines": Json,"p_transfer_id": string }; Returns: undefined
                            },
+"report_collected_orders":
+{ Args: { "p_from": string,"p_location_id"?: string,"p_to": string }; Returns: {
+              "location_code": string,"location_id": string,"orders": number,"value": number
+            }[]
+                           },
+"report_count_differences":
+{ Args: { "p_from": string,"p_location_id"?: string,"p_to": string }; Returns: {
+              "batch_code": string,"code": string,"count_date": string,"counted": number,"difference": number,"expected": number,"item_id": string,"item_name": string,"location_code": string,"sku": string,"stock_take_id": string,"unit": Database["public"]['Enums']["item_unit"],"value": number
+            }[]
+                           },
+"report_movements":
+{ Args: { "p_from": string,"p_location_id"?: string,"p_to": string }; Returns: {
+              "category_name": string,"count_difference": number,"item_id": string,"item_name": string,"kind": Database["public"]['Enums']["item_kind"],"location_code": string,"location_id": string,"location_name": string,"location_type": Database["public"]['Enums']["location_type"],"ordered": number,"other": number,"produced": number,"received": number,"sent": number,"sku": string,"sold": number,"unit": Database["public"]['Enums']["item_unit"],"unit_cost": number,"unit_price": number,"used": number,"wasted": number
+            }[]
+                           },
+"report_production":
+{ Args: { "p_from": string,"p_location_id"?: string,"p_to": string }; Returns: {
+              "bakes": number,"cost_value": number,"item_id": string,"item_name": string,"location_code": string,"location_id": string,"qty": number,"sku": string,"unit": Database["public"]['Enums']["item_unit"]
+            }[]
+                           },
+"report_transfer_differences":
+{ Args: { "p_from": string,"p_location_id"?: string,"p_to": string }; Returns: {
+              "batch_code": string,"code": string,"difference": number,"from_code": string,"item_id": string,"item_name": string,"note": string,"reason": Database["public"]['Enums']["discrepancy_reason"],"received": number,"received_on": string,"sent": number,"sku": string,"to_code": string,"transfer_id": string,"unit": Database["public"]['Enums']["item_unit"],"value": number
+            }[]
+                           },
+"report_waste":
+{ Args: { "p_from": string,"p_location_id"?: string,"p_to": string }; Returns: {
+              "category_name": string,"cost_value": number,"entries": number,"item_id": string,"item_name": string,"kind": Database["public"]['Enums']["item_kind"],"location_code": string,"location_id": string,"qty": number,"reason": Database["public"]['Enums']["waste_reason"],"sku": string,"unit": Database["public"]['Enums']["item_unit"]
+            }[]
+                           },
 "return_stock_take":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"save_customer_order":
+{ Args: { "p_id"?: string,"p_lines": Json,"p_order": Json }; Returns: string
                            },
 "save_item":
 { Args: { "p_barcodes": (string)[],"p_id"?: string,"p_item": Json }; Returns: string
@@ -1093,6 +1328,11 @@ isOneToOne: false
 "submit_transfer":
 { Args: { "p_id": string }; Returns: Database["public"]['Enums']["transfer_status"]
                            },
+"suggest_standing_order":
+{ Args: { "p_from": string,"p_to": string,"p_weeks"?: number }; Returns: {
+              "avg_sold": number,"avg_wasted": number,"item_id": string,"suggested": number,"weekday": number
+            }[]
+                           },
 "take_stock_fefo":
 { Args: { "p_business_date": string,"p_expired_first"?: boolean,"p_item_id": string,"p_location_id": string,"p_note"?: string,"p_qty": number,"p_reference_id": string,"p_reference_type": string,"p_type": Database["public"]['Enums']["movement_type"] }; Returns: undefined
                            },
@@ -1107,7 +1347,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "batch_source": "opening"|"production"|"purchase","discrepancy_reason": "missing"|"damaged"|"extra"|"other","item_kind": "product"|"ingredient"|"packaging","item_unit": "each"|"g"|"kg"|"ml"|"l","location_role": "warehouse_manager"|"warehouse_staff"|"store_manager"|"store_staff"|"driver","location_type": "warehouse"|"store","movement_type": "opening_balance"|"production_in"|"ingredient_use"|"purchase_in"|"transfer_out"|"transfer_in"|"transfer_loss"|"sale"|"waste"|"count_adjustment"|"order_fulfilled"|"manual_adjustment","sales_status": "draft"|"posted","stock_take_scope": "products"|"all"|"categories","stock_take_status": "counting"|"submitted"|"approved"|"cancelled","transfer_origin": "request"|"push"|"standing_order","transfer_status": "draft"|"requested"|"approved"|"picking"|"in_transit"|"received"|"rejected"|"cancelled","waste_reason": "expired"|"damaged"|"unsold"|"quality"|"staff_sample"|"other"
+            "batch_source": "opening"|"production"|"purchase","discrepancy_reason": "missing"|"damaged"|"extra"|"other","item_kind": "product"|"ingredient"|"packaging","item_unit": "each"|"g"|"kg"|"ml"|"l","location_role": "warehouse_manager"|"warehouse_staff"|"store_manager"|"store_staff"|"driver","location_type": "warehouse"|"store","movement_type": "opening_balance"|"production_in"|"ingredient_use"|"purchase_in"|"transfer_out"|"transfer_in"|"transfer_loss"|"sale"|"waste"|"count_adjustment"|"order_fulfilled"|"manual_adjustment","order_status": "new"|"confirmed"|"ready"|"collected"|"cancelled","sales_status": "draft"|"posted","stock_take_scope": "products"|"all"|"categories","stock_take_status": "counting"|"submitted"|"approved"|"cancelled","transfer_origin": "request"|"push"|"standing_order","transfer_status": "draft"|"requested"|"approved"|"picking"|"in_transit"|"received"|"rejected"|"cancelled","waste_reason": "expired"|"damaged"|"unsold"|"quality"|"staff_sample"|"other"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1227,7 +1467,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "batch_source": ["opening", "production", "purchase"],"discrepancy_reason": ["missing", "damaged", "extra", "other"],"item_kind": ["product", "ingredient", "packaging"],"item_unit": ["each", "g", "kg", "ml", "l"],"location_role": ["warehouse_manager", "warehouse_staff", "store_manager", "store_staff", "driver"],"location_type": ["warehouse", "store"],"movement_type": ["opening_balance", "production_in", "ingredient_use", "purchase_in", "transfer_out", "transfer_in", "transfer_loss", "sale", "waste", "count_adjustment", "order_fulfilled", "manual_adjustment"],"sales_status": ["draft", "posted"],"stock_take_scope": ["products", "all", "categories"],"stock_take_status": ["counting", "submitted", "approved", "cancelled"],"transfer_origin": ["request", "push", "standing_order"],"transfer_status": ["draft", "requested", "approved", "picking", "in_transit", "received", "rejected", "cancelled"],"waste_reason": ["expired", "damaged", "unsold", "quality", "staff_sample", "other"]
+            "batch_source": ["opening", "production", "purchase"],"discrepancy_reason": ["missing", "damaged", "extra", "other"],"item_kind": ["product", "ingredient", "packaging"],"item_unit": ["each", "g", "kg", "ml", "l"],"location_role": ["warehouse_manager", "warehouse_staff", "store_manager", "store_staff", "driver"],"location_type": ["warehouse", "store"],"movement_type": ["opening_balance", "production_in", "ingredient_use", "purchase_in", "transfer_out", "transfer_in", "transfer_loss", "sale", "waste", "count_adjustment", "order_fulfilled", "manual_adjustment"],"order_status": ["new", "confirmed", "ready", "collected", "cancelled"],"sales_status": ["draft", "posted"],"stock_take_scope": ["products", "all", "categories"],"stock_take_status": ["counting", "submitted", "approved", "cancelled"],"transfer_origin": ["request", "push", "standing_order"],"transfer_status": ["draft", "requested", "approved", "picking", "in_transit", "received", "rejected", "cancelled"],"waste_reason": ["expired", "damaged", "unsold", "quality", "staff_sample", "other"]
           }
         }
 } as const

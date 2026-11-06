@@ -318,3 +318,43 @@ export async function generateStandingTransfers(): Promise<ActionResult<{ count:
   refresh()
   return ok({ count: data ?? 0 })
 }
+
+export type StandingSuggestion = {
+  itemId: string
+  weekday: number
+  suggested: number
+  avgSold: number
+  avgWasted: number
+}
+
+/** Average sales per weekday at the receiving store, to fill in a standing order. */
+export async function suggestStandingOrder(input: {
+  fromLocationId: string
+  toLocationId: string
+  weeks: number
+}): Promise<ActionResult<{ rows: StandingSuggestion[] }>> {
+  const user = await getCurrentUser()
+  if (!user) return fail("You are signed out. Sign in again.")
+
+  const parsed = z
+    .object({ fromLocationId: z.guid(), toLocationId: z.guid(), weeks: z.number().int().min(1).max(26) })
+    .safeParse(input)
+  if (!parsed.success) return fail("Choose both locations first.")
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("suggest_standing_order", {
+    p_from: parsed.data.fromLocationId,
+    p_to: parsed.data.toLocationId,
+    p_weeks: parsed.data.weeks,
+  })
+  if (error) return fail(friendlyDbError(error))
+  return ok({
+    rows: (data ?? []).map((r) => ({
+      itemId: r.item_id,
+      weekday: r.weekday,
+      suggested: Number(r.suggested),
+      avgSold: Number(r.avg_sold),
+      avgWasted: Number(r.avg_wasted),
+    })),
+  })
+}

@@ -6,7 +6,10 @@ import { BASE, scan, seeText, TINY_PNG, walkthrough } from "./helpers.mjs"
 export default function storeDayWalkthrough() {
   return walkthrough("Store day (sales, waste, count)", async ({ as, log, problems }) => {
     const staff = await as("staff@bakery.test", { width: 390, height: 844 })
-    await staff.goto(`${BASE}/waste`)
+    // On a phone the menu is a slide-out panel.
+    await staff.getByRole("button", { name: "Toggle Sidebar" }).click()
+    await staff.getByRole("dialog").getByRole("link", { name: "Waste" }).click()
+    await staff.waitForURL(/\/waste$/)
     await staff.locator("li").filter({ hasText: "Vanilla cupcake" }).getByRole("button", { name: "Waste" }).click()
     await staff.locator('input[type="file"]').first().setInputFiles({
       name: "cupcakes.png",
@@ -45,12 +48,14 @@ export default function storeDayWalkthrough() {
         ),
       loafBatch,
     )
-    await loafRow.getByRole("spinbutton").fill("1")
+    // Seed: 2 loaves on the shelf before today; 1 sold below, so 1 expected.
+    // Only an empty crate is found: 0.
+    await loafRow.getByRole("spinbutton").fill("0")
     await loafRow.getByRole("spinbutton").blur()
     await staff.waitForTimeout(800)
     await staff.getByRole("button", { name: "Finish counting" }).click()
     await seeText(staff, "Waiting for approval")
-    log("Counted 1 cake (typed) and the loaves (scanned twice, corrected to 1); handed in")
+    log("Counted 1 cake (typed) and the loaves (scanned twice, corrected to 0); handed in")
 
     const manager = await as("westham@bakery.test")
     await manager.goto(`${BASE}/sales`)
@@ -73,7 +78,7 @@ export default function storeDayWalkthrough() {
     await manager.goto(`${BASE}/stock-takes/${code}`)
     await seeText(manager, "Differences")
     const loafText = (await manager.locator("tr").filter({ hasText: "White loaf" }).innerText()).replace(/\s+/g, " ")
-    if (!/\b2\b.*\b1\b.*-1/.test(loafText)) problems.push(`loaf review row looks wrong: ${loafText}`)
+    if (!/\b1\b.*\b0\b.*-1/.test(loafText)) problems.push(`loaf review row looks wrong: ${loafText}`)
     await manager.getByRole("button", { name: "Approve", exact: true }).click()
     await manager.getByRole("dialog").getByText("1 line will be corrected").waitFor()
     await manager.getByRole("dialog").getByRole("button", { name: "Approve", exact: true }).click()

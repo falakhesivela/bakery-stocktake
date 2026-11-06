@@ -5,7 +5,7 @@ import { Suspense } from "react"
 import { requireUser } from "@/lib/auth"
 import { qrSvg } from "@/lib/barcode/svg"
 import { formatDate, formatDateTime, formatQty } from "@/lib/format"
-import { loadTransfer, type TransferLocation } from "@/lib/transfer-data"
+import { loadTransfer, loadTransferOrders, type TransferLocation } from "@/lib/transfer-data"
 import { originLabel, STATUS_LABELS } from "@/lib/transfers"
 import { PageStyle } from "@/components/page-style"
 import { PrintToolbar } from "@/components/print-toolbar"
@@ -25,6 +25,7 @@ async function DeliveryNote({ params }: { params: PageProps<"/transfers/[id]/not
   const { id } = await params
   const transfer = await loadTransfer(id)
   if (!transfer) notFound()
+  const orders = await loadTransferOrders(transfer.id)
 
   // The QR code opens the receive screen for this transfer on any phone.
   const h = await headers()
@@ -71,6 +72,21 @@ async function DeliveryNote({ params }: { params: PageProps<"/transfers/[id]/not
           <Address label="From" location={transfer.from} />
           <Address label="To" location={transfer.to} />
         </section>
+
+        {orders.length > 0 && (
+          <section className="rounded border-2 border-black p-3">
+            <div className="font-semibold">Customer orders in this delivery: keep these boxes for collection</div>
+            <ul className="mt-1 space-y-0.5">
+              {orders.map((o) => (
+                <li key={o.id}>
+                  <span className="font-mono">{o.code}</span> {o.customerName}: {o.items} · collect{" "}
+                  {formatDate(o.pickupDate)}
+                  {o.pickupTime && ` ${o.pickupTime}`}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {transfer.note && (
           <p className="rounded border border-neutral-300 px-3 py-2">

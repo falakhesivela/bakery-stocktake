@@ -67,6 +67,7 @@ async function EditItemForm({
           price: item.price,
           notes: item.notes ?? "",
           active: item.active,
+          madeToOrder: item.made_to_order,
           barcodes: item.item_barcodes.map((b) => b.barcode),
         }}
       />

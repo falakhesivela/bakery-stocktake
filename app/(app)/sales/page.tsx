@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { requireUser } from "@/lib/auth"
-import { isIsoDate, relativeDay, todayIn } from "@/lib/dates"
+import { addDays, isIsoDate, relativeDay, todayIn } from "@/lib/dates"
 import { formatDateTime, formatMoney, formatQty } from "@/lib/format"
 import { canManageLocation, workLocations } from "@/lib/permissions"
 import { defaultStoreLocation } from "@/lib/store-ops"
@@ -59,12 +59,13 @@ async function SalesContent({ searchParams }: { searchParams: PageProps<"/sales"
   const date = isIsoDate(param(sp.date)) && param(sp.date) <= today ? param(sp.date) : today
 
   const supabase = await createClient()
-  const [{ data: products }, { data: stock }, { data: day }, { data: recent }] = await Promise.all([
+  const [{ data: products }, { data: stock }, { data: day }, { data: recent }, { count: collected }] = await Promise.all([
     supabase
       .from("items")
       .select("id, sku, name, unit, price, item_barcodes(barcode)")
       .eq("active", true)
       .eq("kind", "product")
+      .eq("made_to_order", false)
       .order("name"),
     supabase.from("stock_by_item").select("item_id, qty").eq("location_id", location.id),
     supabase
@@ -81,6 +82,13 @@ async function SalesContent({ searchParams }: { searchParams: PageProps<"/sales"
       .eq("location_id", location.id)
       .order("business_date", { ascending: false })
       .limit(14),
+    supabase
+      .from("customer_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("pickup_location_id", location.id)
+      .eq("status", "collected")
+      .gte("collected_at", `${date}T00:00:00`)
+      .lt("collected_at", `${addDays(date, 1)}T00:00:00`),
   ])
 
   const onHand = new Map((stock ?? []).map((s) => [s.item_id!, Number(s.qty)]))
@@ -126,6 +134,16 @@ async function SalesContent({ searchParams }: { searchParams: PageProps<"/sales"
         today={today}
         dateLabel="Sales for"
       />
+
+      {(collected ?? 0) > 0 && (
+        <p className="text-sm text-muted-foreground">
+          {collected} customer order{collected === 1 ? " was" : "s were"} collected here that day. Don&apos;t
+          enter {collected === 1 ? "it" : "them"} again below: collected orders already came out of stock.{" "}
+          <Link href="/orders?tab=done" className="underline">
+            See orders
+          </Link>
+        </p>
+      )}
 
       {posted ? (
         <Card>

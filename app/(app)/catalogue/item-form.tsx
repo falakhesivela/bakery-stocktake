@@ -35,6 +35,7 @@ export type ItemFormValues = {
   price: number | null
   notes: string
   active: boolean
+  madeToOrder: boolean
   barcodes: string[]
 }
 
@@ -50,6 +51,7 @@ export const EMPTY_ITEM: ItemFormValues = {
   price: null,
   notes: "",
   active: true,
+  madeToOrder: false,
   barcodes: [],
 }
 
@@ -255,6 +257,18 @@ export function ItemForm({
               <FieldLabel htmlFor="notes">Notes</FieldLabel>
               <Textarea id="notes" name="notes" rows={2} defaultValue={initial.notes} maxLength={1000} />
             </Field>
+            {kind === "product" && (
+              <Field orientation="horizontal">
+                <Switch id="madeToOrder" name="madeToOrder" defaultChecked={initial.madeToOrder} />
+                <div>
+                  <FieldLabel htmlFor="madeToOrder">Made to order</FieldLabel>
+                  <FieldDescription>
+                    For custom cakes: priced and described on each customer order. Left
+                    out of end-of-day sales and standing orders.
+                  </FieldDescription>
+                </div>
+              </Field>
+            )}
             <Field orientation="horizontal">
               <Switch id="active" name="active" defaultChecked={initial.active} />
               <div>

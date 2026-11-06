@@ -20,7 +20,7 @@ import {
 import { requireUser } from "@/lib/auth"
 import { relativeDay, todayIn } from "@/lib/dates"
 import { formatDate, formatDateTime, formatQty } from "@/lib/format"
-import { loadTransfer, type TransferDetail } from "@/lib/transfer-data"
+import { loadTransfer, loadTransferOrders, type TransferDetail } from "@/lib/transfer-data"
 import {
   EVENT_LABELS,
   originLabel,
@@ -55,6 +55,7 @@ async function TransferContent({ params }: { params: PageProps<"/transfers/[id]"
   const { id } = await params
   const transfer = await loadTransfer(id)
   if (!transfer) notFound()
+  const orders = await loadTransferOrders(transfer.id)
 
   const perms = transferPermissions(user, {
     fromLocationId: transfer.from.id,
@@ -119,6 +120,30 @@ async function TransferContent({ params }: { params: PageProps<"/transfers/[id]"
       )}
 
       {transfer.hasDiscrepancy && <DiscrepancySummary transfer={transfer} />}
+
+      {orders.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer orders on this delivery</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1 text-sm">
+              {orders.map((o) => (
+                <li key={o.id} className="flex flex-wrap gap-x-2">
+                  <Link href={`/orders/${o.code}`} className="font-mono font-medium hover:underline">
+                    {o.code}
+                  </Link>
+                  <span className="font-medium">{o.customerName}</span>
+                  <span className="text-muted-foreground">
+                    {o.items} · collect {relativeDay(o.pickupDate, today).toLowerCase()}
+                    {o.pickupTime && ` ${o.pickupTime}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

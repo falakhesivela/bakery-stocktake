@@ -30,3 +30,16 @@ export async function uploadPhoto(locationId: string, folder: "waste" | "damage"
   if (error) throw new Error(`Photo upload failed: ${error.message}`)
   return path
 }
+
+/**
+ * Uploads a customer order's reference photo. Order photos live under
+ * orders/ so the bakery making the cake can see them too.
+ */
+export async function uploadOrderPhoto(blob: Blob) {
+  const path = `orders/${crypto.randomUUID()}.jpg`
+  const { error } = await createClient()
+    .storage.from("photos")
+    .upload(path, blob, { contentType: "image/jpeg", upsert: false })
+  if (error) throw new Error(`Photo upload failed: ${error.message}`)
+  return path
+}

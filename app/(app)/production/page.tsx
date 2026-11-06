@@ -20,6 +20,7 @@ import { addDays, isIsoDate, relativeDay, todayIn } from "@/lib/dates"
 import { formatDate, formatQty, formatTime } from "@/lib/format"
 import { canManageLocation, productionLocations } from "@/lib/permissions"
 import { createClient } from "@/lib/supabase/server"
+import { CustomerOrdersCard } from "./customer-orders-card"
 import { ProductionFilters } from "./production-filters"
 import { ProductionWorkspace } from "./production-workspace"
 import { UndoBakeButton } from "./undo-bake-button"
@@ -173,6 +174,8 @@ async function ProductionContent({
           toMake: Number(p.to_make),
         }))}
       />
+
+      <CustomerOrdersCard locationId={location.id} due={due} today={today} canWork />
 
       <Card>
         <CardHeader>

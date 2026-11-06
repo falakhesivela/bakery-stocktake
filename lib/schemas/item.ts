@@ -35,6 +35,7 @@ export const itemSchema = z.object({
   price: z.number().min(0, "Price can't be negative").nullable(),
   notes: z.string().trim().max(1000),
   active: z.boolean(),
+  madeToOrder: z.boolean(),
   barcodes: z.array(z.string().trim().min(1).max(64)).max(20, "At most 20 barcodes"),
 })
 

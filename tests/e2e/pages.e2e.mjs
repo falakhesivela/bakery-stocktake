@@ -75,12 +75,45 @@ const CHECKS = [
   ["admin", `/end-of-day?location=${WH}&date=${yesterday}&all=1`, ["Cocoa powder", "Sent / used / other"], []],
   ["admin", `/stock/history?location=${WH}`, ["Used in baking", "Supplier delivery", "R-00002"], []],
   ["admin", "/catalogue/40000000-0000-0000-0000-000000000001", ["Recipe and cost to make"], []],
+  // Phase 5: customer orders
+  ["westham", "/orders", ["To collect", "Priya Naidoo", "Lerato Mokoena", "New order"], ["Tom Jacobs"]],
+  ["baker", "/orders?tab=make", ["Priya Naidoo"], ["Lerato Mokoena", "Tom Jacobs"]],
+  ["riverside", "/orders", ["Tom Jacobs", "on T-00005"], ["Priya Naidoo"]],
+  ["westham", "/orders/O-00001", ["Priya Naidoo", "Salted caramel", "Happy 40th Priya!", "Still to pay", "350.00", "Mark ready"].slice(0, 5), ["Customer collected"]],
+  ["baker", "/orders/O-00001", ["Mark ready", "To be made at Central Warehouse"], ["Customer collected", "Change"]],
+  ["westham", "/orders/O-00003", ["Customer collected", "Ready to collect"], []],
+  ["westham", "/orders/O-00001/ticket?size=sheet", ["Collect", "Happy 40th Priya!", "Salted caramel", "To pay"], []],
+  ["baker", "/production", ["Customer orders to make", "Happy 40th Priya!", "Custom cake"], []],
+  ["admin", "/transfers/T-00005", ["Customer orders on this delivery", "Tom Jacobs"], []],
+  ["westham", "/sales", ["1 customer order was collected here that day"], ["CAKE-CUSTOM"]],
+  ["westham", "/dashboard", ["Customer orders", "to hand over today"], []],
+  // Phase 6: reports, notifications and audit log
+  ["westham", "/reports", ["Shelf sales", "Waste at cost", "By location", "Most wasted", "Vanilla cupcake", "Units sold"], ["Riverside", "Baked"]],
+  ["admin", "/reports", ["ST-01", "ST-02", "WH-01", "Baked"], []],
+  ["staff", "/reports", ["Reports are for managers"], ["Shelf sales"]],
+  ["admin", "/reports?report=sales", ["Shelf sales", "Chocolate cake (large)", "Customer orders collected"], []],
+  ["riverside", "/reports?report=waste", ["Waste by reason", "Unsold at end of day", "Butter croissant"], ["Vanilla cupcake"]],
+  ["westham", "/reports?report=sell-through", ["Received, sold & wasted", "Sold %", "Waste %", "Vanilla cupcake"], []],
+  ["admin", "/reports?report=stock-value", ["Stock on hand, at cost", "Ingredients", "Cocoa powder"], []],
+  ["warehouse", "/reports?report=production", ["Butter croissant", "48"], []],
+  ["warehouse", "/reports?report=ingredients", ["Recipe use", "Actual use", "Butter"], []],
+  ["admin", "/reports?report=counts", ["C-00001", "Vanilla cupcake", "-1"], []],
+  ["westham", "/reports?report=deliveries", ["Every delivery in this period arrived as sent"], []],
+  ["westham", "/dashboard", ["Last 7 days", "Shelf sales", "Open reports"], []],
+  ["staff", "/dashboard", [], ["Last 7 days"]],
+  ["warehouse", "/notifications", ["New request T-00002 from Riverside Store", "unread"], []],
+  ["staff", "/notifications", ["T-00001 is on the way"], ["T-00002", "New customer order"]],
+  ["admin", "/settings/audit", ["Audit log", "Changed by", "Standing orders"], []],
+  ["westham", "/settings/audit", [], ["Changed by"]],
+  ["westham", "/transfers/standing", ["Suggest from last 4 weeks"], []],
+  ["admin", "/stock", ["Download CSV"], []],
 ]
 
 const NOT_FOUND = [
   ["riverside", "/transfers/T-00001"],
   ["riverside", "/stock-takes/C-00001"],
   ["admin", "/deliveries/R-99999"],
+  ["riverside", "/orders/O-00001"],
 ]
 
 export default async function pages() {

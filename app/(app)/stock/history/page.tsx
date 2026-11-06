@@ -127,6 +127,8 @@ async function HistoryContent({
               : "/deliveries"
         return { href: `${base}/${code}`, label: code }
       }
+      case "customer_order":
+        return row.note ? { href: `/orders/${row.note}`, label: row.note } : null
       case "sales_day":
         return { href: `/sales?location=${row.location_id}&date=${row.business_date}`, label: "Sales" }
       case "waste_entry":

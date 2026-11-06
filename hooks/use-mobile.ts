@@ -3,31 +3,31 @@ import * as React from "react"
 const MOBILE_BREAKPOINT = 768
 const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
 
-function subscribe(onChange: () => void) {
-  const mql = window.matchMedia(QUERY)
-  mql.addEventListener("change", onChange)
-  return () => mql.removeEventListener("change", onChange)
+/**
+ * True on phone-sized screens. Starts as false (what the server renders) and
+ * switches after the page has loaded, as a low-priority (transition) update.
+ *
+ * Why not useSyncExternalStore: its client value differs from the server's on
+ * phones, which makes React apply an urgent update right after hydration. At
+ * the root of the app that makes React give up hydrating content that is
+ * still streaming in and re-render the whole page in the browser instead
+ * (slower, and anything typed in the meantime is lost).
+ */
+/** Whether the screen is phone-sized right now (for event handlers). */
+export function isMobileScreen() {
+  return typeof window !== "undefined" && window.matchMedia(QUERY).matches
 }
 
 export function useIsMobile() {
-  return React.useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia(QUERY).matches,
-    () => false, // server render: assume desktop
-  )
-}
+  const [isMobile, setIsMobile] = React.useState(false)
 
-const noSubscribe = () => () => {}
+  React.useEffect(() => {
+    const mql = window.matchMedia(QUERY)
+    const sync = () => React.startTransition(() => setIsMobile(mql.matches))
+    sync()
+    mql.addEventListener("change", sync)
+    return () => mql.removeEventListener("change", sync)
+  }, [])
 
-/**
- * False while a component is being hydrated, true afterwards. Use it to keep
- * the first client render identical to the server HTML when output depends on
- * browser-only values (e.g. screen size) that a parent may already know.
- */
-export function useHydrated() {
-  return React.useSyncExternalStore(
-    noSubscribe,
-    () => true,
-    () => false,
-  )
+  return isMobile
 }

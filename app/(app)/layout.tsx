@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { AppSidebar, AppSidebarSkeleton } from "@/components/app-sidebar"
+import { NotificationBell, NotificationBellFallback } from "@/components/notifications"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -21,6 +22,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="text-sm font-medium text-muted-foreground">
             Bakery Stock
           </span>
+          <div className="ml-auto">
+            <Suspense fallback={<NotificationBellFallback />}>
+              <NotificationBell />
+            </Suspense>
+          </div>
         </header>
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>
       </SidebarInset>

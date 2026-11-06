@@ -160,7 +160,7 @@ export async function loadTransferItems() {
   const supabase = await createClient()
   const { data } = await supabase
     .from("items")
-    .select("id, sku, name, kind, unit, item_barcodes(barcode)")
+    .select("id, sku, name, kind, unit, made_to_order, item_barcodes(barcode)")
     .eq("active", true)
     .order("kind")
     .order("name")
@@ -170,6 +170,7 @@ export async function loadTransferItems() {
     name: i.name,
     kind: i.kind,
     unit: i.unit as Unit,
+    madeToOrder: i.made_to_order,
     barcodes: i.item_barcodes.map((b) => b.barcode),
   }))
 }
@@ -219,4 +220,26 @@ export async function loadParLevels(locationIds: string[]) {
     })
   }
   return result
+}
+
+/** Customer orders travelling on a transfer (so the store knows whose box is whose). */
+export async function loadTransferOrders(transferId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("customer_orders")
+    .select("id, code, status, pickup_date, pickup_time, customers(name), customer_order_lines(qty, items(name))")
+    .eq("transfer_id", transferId)
+    .neq("status", "cancelled")
+    .order("pickup_date")
+  return (data ?? []).map((o) => ({
+    id: o.id,
+    code: o.code,
+    status: o.status,
+    customerName: o.customers?.name ?? "",
+    pickupDate: o.pickup_date,
+    pickupTime: o.pickup_time ? o.pickup_time.slice(0, 5) : null,
+    items: o.customer_order_lines
+      .map((l) => (Number(l.qty) === 1 ? l.items?.name : `${Number(l.qty)} × ${l.items?.name}`))
+      .join(", "),
+  }))
 }

@@ -8,7 +8,8 @@ export function parseCsvFile(file: File): Promise<Record<string, string>[]> {
     Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: "greedy",
-      transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, "_"),
+      // Files saved by Excel (and our own downloads) can start with a byte-order mark.
+      transformHeader: (h) => h.replace(/^\uFEFF/, "").trim().toLowerCase().replace(/\s+/g, "_"),
       transform: (value) => value.trim(),
       complete: (result) => resolve(result.data),
       error: (err) => reject(err),
@@ -18,8 +19,10 @@ export function parseCsvFile(file: File): Promise<Record<string, string>[]> {
 
 /** Builds a CSV file and starts a download in the browser. */
 export function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
-  const csv = Papa.unparse(rows)
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+  // Text starting with = + - @ is prefixed with ' so spreadsheets don't run it
+  // as a formula. The byte-order mark makes Excel read the file as UTF-8.
+  const csv = Papa.unparse(rows, { escapeFormulae: true })
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" })
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.href = url

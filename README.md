@@ -86,8 +86,48 @@ row-level security), Tailwind 4 and shadcn/ui (Base UI).
 - The production page lists the ingredients needed for the bake plan and any
   shortfall.
 
-Coming next: customer orders (Phase 5), then reports and alerts. The full plan
-is in [docs/plan.md](docs/plan.md).
+**Phase 5: customer orders**
+
+- Take an order at any store: customer (returning customers are recognised by
+  phone number), pickup store, date and time, and either catalogue products or
+  a custom cake (size, flavour, filling, writing on the cake, decoration notes,
+  a reference photo) with its own price. Deposit and balance are tracked.
+- Confirmed orders go on the bakery's bake list for their day, and the
+  Production page shows each cake's details and photo.
+- "Mark ready" at the bakery puts the order on the next delivery to the pickup
+  store (an approved delivery for that day, or a new one). The delivery note
+  lists the customer orders on board. Orders from a store's own shelf need no
+  delivery.
+- The store sees where each order is (to be made, on the way, at the store),
+  hands it over and records what was paid; that takes it out of stock and counts
+  as sold in the End of day summary.
+- Printable order sheet (A5, for the baker) and box label (58 × 40 mm with a
+  barcode).
+- "Custom cake" is a catalogue product marked *made to order*: priced per
+  order, and left out of end-of-day sales and standing orders.
+
+**Phase 6: reports, dashboards and alerts**
+
+- Reports for managers and admins (sidebar → Reports), for one location or all
+  of theirs, over any date range: an overview, sales, waste (by reason and by
+  item), received vs sold vs wasted per store, stock value, production,
+  ingredient use (recipes vs counts), count differences and delivery
+  differences. Every table downloads as CSV; so does Stock on hand.
+- The dashboard has a "Last 7 days" card with sales, waste and count
+  differences for the locations you manage.
+- Standing orders: "Suggest from last 4 weeks' sales" fills in each weekday
+  with what the store sold on that weekday, on average (rounded up). Check the
+  numbers, then save.
+- Notifications (the bell at the top): new requests, approvals, rejections,
+  deliveries on the way, deliveries that arrived with differences, counts
+  waiting for approval and customer orders to make or hand over. From 06:00
+  each day there is also a round-up of stock at its best-before, low stock and
+  orders due tomorrow (once per person per day). Kept for 60 days.
+- Audit log for admins (Settings → Audit log): who changed products, prices,
+  barcodes, recipes, suppliers, locations, users and roles, reorder levels and
+  standing orders, with the old and new values.
+
+The full plan is in [docs/plan.md](docs/plan.md).
 
 ## How stock is stored
 
@@ -139,9 +179,12 @@ Open http://localhost:3000 and sign in with one of the seeded accounts
 
 The seed data includes a delivery on its way to Westham (T-00001), a party
 request from Riverside waiting for approval, tomorrow's standing orders, a
-morning bake of croissants, and a closed-off yesterday at Westham (sales,
-waste and an approved count with one cupcake missing), so every screen has
-something to show.
+morning bake of croissants, a closed-off yesterday at Westham (sales,
+waste and an approved count with one cupcake missing), and four customer
+orders (a birthday cake to make for tomorrow, cupcakes on their way to
+Riverside, a cake set aside at Westham, one already collected), plus four
+weeks of sales and waste at both stores for the reports and standing-order
+suggestions, so every screen has something to show.
 
 Who can do what with transfers:
 
@@ -155,8 +198,8 @@ Everything applies to the person's own locations only; admins can do it all.
 ### Browser walkthroughs
 
 `pnpm test:e2e` drives a headless Chromium through real flows (baking,
-transfers, a store's day, recipes and deliveries) and checks what each role
-can see. It uses the newest Playwright headless shell in
+transfers, a store's day, recipes and deliveries, customer orders, reports and
+notifications) and checks what each role can see. It uses the newest Playwright headless shell in
 `~/.cache/ms-playwright`; if there is none, run
 `pnpm exec playwright-core install chromium-headless-shell` once, or point
 `E2E_CHROMIUM` at a Chromium binary.
@@ -174,7 +217,7 @@ https address it prints (accept the certificate warning).
 | `pnpm dev` | Start the app |
 | `pnpm build` | Production build (also checks Cache Components rules) |
 | `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript |
-| `pnpm test` | Database tests against **local** Supabase (permissions, ledger, bakes, transfers, sales, waste, counts, recipes, deliveries) |
+| `pnpm test` | Database tests against **local** Supabase (permissions, ledger, bakes, transfers, sales, waste, counts, recipes, deliveries, customer orders) |
 | `pnpm test:e2e` | Browser walkthroughs and page/permission checks against the running app (run `pnpm db:reset` first; `BASE=` to point elsewhere) |
 | `pnpm db:reset` | Rebuild the local database from migrations + seed |
 | `pnpm db:types` | Regenerate `lib/supabase/database.types.ts` after changing SQL |
@@ -183,7 +226,7 @@ https address it prints (accept the certificate warning).
 
 1. Create a Supabase project and link it: `pnpm exec supabase link`.
 2. Push the schema: `pnpm exec supabase db push` (do **not** load `seed.sql`).
-   This also turns on `pg_cron` (hourly standing-order job) and creates the
+   This also turns on `pg_cron` (hourly standing-order and daily-alert jobs) and creates the
    private `photos` storage bucket with its access rules.
 3. In the dashboard, turn off public sign-ups (Authentication → Sign In / Providers).
 4. Create the first account in Authentication → Users. The first account becomes admin automatically.
@@ -193,8 +236,8 @@ https address it prints (accept the certificate warning).
 
 ```
 app/(auth)/login          sign in
-app/(app)/...             signed-in pages (dashboard, stock, transfers, production, catalogue, labels, settings)
-app/(print)/...           bare print layouts (labels, delivery notes)
+app/(app)/...             signed-in pages (dashboard, stock, transfers, production, sales, orders, reports, settings, ...)
+app/(print)/...           bare print layouts (labels, delivery notes, order sheets)
 components/               shared UI (sidebar, scanner, shadcn/ui in components/ui)
 lib/                      auth, permissions, Supabase clients, formatting, schemas
 proxy.ts                  refreshes the session and sends signed-out visitors to /login

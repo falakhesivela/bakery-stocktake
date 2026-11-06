@@ -43,6 +43,7 @@ export async function saveItem(
     price: numberOrNull(formData.get("price")),
     notes: formData.get("notes") ?? "",
     active: formData.get("active") === "on",
+    madeToOrder: formData.get("madeToOrder") === "on",
     barcodes: String(formData.get("barcodes") ?? "")
       .split(/[\n,]/)
       .map((b) => b.trim())
@@ -69,6 +70,7 @@ export async function saveItem(
       price: item.price,
       notes: item.notes,
       active: item.active,
+      made_to_order: item.kind === "product" && item.madeToOrder,
     },
     p_barcodes: item.barcodes,
   })
