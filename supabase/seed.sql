@@ -23,7 +23,7 @@ begin
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
   ) values (
     p_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-    p_email, crypt('password123', gen_salt('bf')), now(),
+    p_email, extensions.crypt('password123', extensions.gen_salt('bf')), now(),
     '', '', '', '',
     '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('full_name', p_name), now(), now()
